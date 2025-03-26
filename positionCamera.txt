@@ -1,0 +1,13 @@
+
+le 26/06/24
+hcamera = 164
+y = 200 camera -> bords pite
+X = 40 camera -> centre piste gauche
+hrobot 350
+
+sudo apt install cmake libgtk2.0-dev pkg-config
+mkdir build
+cd build
+cmake ..
+make -j 8
+sudo make install
