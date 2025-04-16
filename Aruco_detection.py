@@ -101,7 +101,7 @@ marker_location_hold = True
 # +y est vers 3
 # fonction a reprendre
 def camera_compensation(x_coordinate, y_coordinate):
-    h_foam = 300 / Variablesglobales.coef_red  #350/2.31 hauteur cible fixée sur le robot
+    h_foam = 290 / Variablesglobales.coef_red  #350/2.31 hauteur cible fixée sur le robot
     # calcul position caméra
     # le rectangle des 4 balises fait 400 x (400*2.151=860 points)
     # il mesure réellement 860*1850 mm
@@ -159,6 +159,7 @@ def getAlpha(alpha, Xvect, Yvect):
     return alpha
 #***************************************************************************
 def main():
+    print(__file__)
     current_time1=time.time()
     # Load the ArUco dictionary
     print(f"[INFO] detecting '{desired_aruco_dictionary1}' markers...")
@@ -169,13 +170,18 @@ def main():
     this_aruco_dictionary2 = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[desired_aruco_dictionary1])
     this_aruco_parameters2 = cv2.aruco.DetectorParameters()
     
+    left_corner_foam = None
+    corner_id_foam = None
+    
+    
     # Start the video stream
     # video de la sequence de deplacement
     # la vidéo est trimée pour eliminer la zone de démarrage ou on ne voit pas les 4 ou 5 balises a prendre en compte pour le prochain film
-    url = 'Video 24 avril - Trim.mp4'
+    url = 'test 2 avril h robot 190.mp4'
     #url = 'essai 09 04 24.mp4'
     
-    cap = cv2.VideoCapture(url)
+    #cap = cv2.VideoCapture(url)
+    cap = cv2.VideoCapture(0)
     # ou webcam du PC
     if not cap.isOpened():
         print("Cannot open camera")
@@ -184,6 +190,8 @@ def main():
     while cap.isOpened():
         current_time=time.time()
         #print("time :",round((time.time()-current_time1),1))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         ret, frame = cap.read()
         if not ret:
             break
@@ -278,78 +286,79 @@ def main():
                 print("centercorner ",centerCorner)
            
             # update the markers positions when a markers is found. When no marker is found, use previous location
-            if marker_location_hold == True:
-                if corner_id_foam is not None:
-                    #only one piece of foam
-                    current_center_Corner[0] = centerCorner[0]
-                centerCorner[0] = current_center_Corner[0] 
+            
+            if corner_id_foam is not None:
+                if marker_location_hold == True:
+                        #only one piece of foam
+                        current_center_Corner[0] = centerCorner[0]
+                        centerCorner[0] = current_center_Corner[0] 
+                    
+                draw_corners(img_wrapped, centerCorner)
                 
-            draw_corners(img_wrapped, centerCorner)
-            
-            #dessine une croix rouge sur le code ARUCO du robot
-            img_wrapped=cv2.line(img_wrapped,(centerCorner[0][0],0), (centerCorner[0][0],h), (0,0,255), 2)
-            img_wrapped=cv2.line(img_wrapped,(0,(centerCorner[0][1])), (w,(centerCorner[0][1])), (0,0,255), 2)
-            
-            #on dessine le vecteur
-            
-            # bleu pour a
-            img_wrapped=cv2.line(img_wrapped,(0,0),(xacor,yacor),(255,0,0),2)
-            # magenta pour b
-            img_wrapped=cv2.line(img_wrapped,(0,0),(xbcor,ybcor),(255,0,255),2)
-            draw_numbers(img_wrapped,left_corner_foam,corner_id_foam)
-            cv2.imshow('img_wrapped',img_wrapped)
-            #affiche image deformée
+                #dessine une croix rouge sur le code ARUCO du robot
+                img_wrapped=cv2.line(img_wrapped,(centerCorner[0][0],0), (centerCorner[0][0],h), (0,0,255), 2)
+                img_wrapped=cv2.line(img_wrapped,(0,(centerCorner[0][1])), (w,(centerCorner[0][1])), (0,0,255), 2)
+                
+                #on dessine le vecteur
+                
+                # bleu pour a
+                img_wrapped=cv2.line(img_wrapped,(0,0),(xacor,yacor),(255,0,0),2)
+                # magenta pour b
+                img_wrapped=cv2.line(img_wrapped,(0,0),(xbcor,ybcor),(255,0,255),2)
+                draw_numbers(img_wrapped,left_corner_foam,corner_id_foam)
+                cv2.imshow('img_wrapped',img_wrapped)
+                #affiche image deformée
 
-        # Display the resulting frame
-        cv2.imshow('frame_with_square',frame_with_square)
-
-        # le repère est maintenant zero en ht a gauche, x vers le droite, y vers le bas.
-        # coordonnées apparentes du robot
-        # on ne peut pas faire un simple changement de repère, l'image a été construite à partir des 4 position des balises
-        # il faut donc repartir de là, 200 de bordure, 400 entre X1 et X2, 400*2.151 entre Y1 et Y4
-        # voici les coordonnées robot dans l'image, en point
-        # il faut les coordonnées dans le repere 0XY
-        x_coordinate = centerCorner[0][0]
-        y_coordinate = centerCorner[0][1]
+                # Display the resulting frame
+                cv2.imshow('frame_with_square',frame_with_square)
         
-        #camera compensation
-        x_coordinate_comp, y_coordinate_comp = camera_compensation(x_coordinate, y_coordinate)
-        x_coordpixel = int(x_coordinate_comp)
-        y_coordpixel = int(y_coordinate_comp)
-        # il faut faire un changement de repère pour facilter la lecture
-        # on place le zero sur la balise du haut à gauche  !!!!!
+                # le repère est maintenant zero en ht a gauche, x vers le droite, y vers le bas.
+                # coordonnées apparentes du robot
+                # on ne peut pas faire un simple changement de repère, l'image a été construite à partir des 4 position des balises
+                # il faut donc repartir de là, 200 de bordure, 400 entre X1 et X2, 400*2.151 entre Y1 et Y4
+                # voici les coordonnées robot dans l'image, en point
+                # il faut les coordonnées dans le repere 0XY
+                x_coordinate = centerCorner[0][0]
+                y_coordinate = centerCorner[0][1]
+                
+                #camera compensation
+                x_coordinate_comp, y_coordinate_comp = camera_compensation(x_coordinate, y_coordinate)
+                x_coordpixel = int(x_coordinate_comp)
+                y_coordpixel = int(y_coordinate_comp)
+                # il faut faire un changement de repère pour facilter la lecture
+                # on place le zero sur la balise du haut à gauche  !!!!!
+                
+                x_coordmm = Variablesglobales.coef_red * (x_coordpixel - (Variablesglobales.border_size-750 / Variablesglobales.coef_red)) # 200*2.151
+                y_coordmm = Variablesglobales.coef_red * (y_coordpixel - (Variablesglobales.border_size_vert-455 / Variablesglobales.coef_red)) #400*2.151
         
-        x_coordmm = Variablesglobales.coef_red * (x_coordpixel - (Variablesglobales.border_size-750 / Variablesglobales.coef_red)) # 200*2.151
-        y_coordmm = Variablesglobales.coef_red * (y_coordpixel - (Variablesglobales.border_size_vert-455 / Variablesglobales.coef_red)) #400*2.151
-
-        # dessine une croix verte sur le code ARUCO du robot, coordonnées corrigées
-        img_wrapped = cv2.line(img_wrapped, (x_coordinate_comp, 0), (x_coordinate_comp, h), (0, 255, 0), 2)
-        img_wrapped = cv2.line(img_wrapped, (0, y_coordinate_comp), (w, y_coordinate_comp), (0, 255, 0), 2)
+                # dessine une croix verte sur le code ARUCO du robot, coordonnées corrigées
+                img_wrapped = cv2.line(img_wrapped, (x_coordinate_comp, 0), (x_coordinate_comp, h), (0, 255, 0), 2)
+                img_wrapped = cv2.line(img_wrapped, (0, y_coordinate_comp), (w, y_coordinate_comp), (0, 255, 0), 2)
+                
+                # pour voir le vecteur orientation il faut le dessiner apres la croix verte
+                img_wrapped = cv2.line(img_wrapped, (xacor, yacor),(xbcor, ybcor),(255, 0, 0), 2)
+                img_wrapped = cv2.line(img_wrapped, (100, 100), (100 + Xvect, 100 + Yvect), (255, 0, 255), 2)
         
-        # pour voir le vecteur orientation il faut le dessiner apres la croix verte
-        img_wrapped = cv2.line(img_wrapped, (xacor, yacor),(xbcor, ybcor),(255, 0, 0), 2)
-        img_wrapped = cv2.line(img_wrapped, (100, 100), (100 + Xvect, 100 + Yvect), (255, 0, 255), 2)
-
-
-        # affiche les axes
-        # en X on a mis 400 pts à cgauche, c'est à dire 1500mm, alors que le bord de la piste n'est qu'a 700mm soit 187 points
-        # il y a 50 mm qui se balladent
-        # en Y on a mis 300 pts au dessus, c'est à dire 1125mm, alors que le bord de la piste n'est qu'a 500mm soit 153 points
-        # il y a 100 mm qui se balladent
-        img_wrapped=cv2.line(img_wrapped,(187,200), (187,333), (255,0,0), 2) #Y
-        img_wrapped=cv2.line(img_wrapped,(187,200), (400,200), (255,0,0), 2) #X
-        #donc 187,153 est le décalage en point pour etre positionné dans le repere centré dans l'angle haut et gauche
-        #donc 701,574 en mm
-        print("Xrobot ",centerCorner[0][0]-187)
-        print("Yrobot ",centerCorner[0][1]-153)
-        # affiche les coordonnées sur l'image
-        cv2.putText(img_wrapped, format(int(x_coordmm)), (10,40),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 0), 2)
-        cv2.putText(img_wrapped, format(int(y_coordmm)), (130,40),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 0), 2)
-        cv2.putText(img_wrapped, format(alpha), (10,70),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 255), 2)
-        # affiche le nom des axes
-        cv2.putText(img_wrapped, 'X', (410,153),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)
-        cv2.putText(img_wrapped, 'Y', (153,380),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)        
-        cv2.putText(img_wrapped, '0', (190,180),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)       
+        
+                # affiche les axes
+                # en X on a mis 400 pts à cgauche, c'est à dire 1500mm, alors que le bord de la piste n'est qu'a 700mm soit 187 points
+                # il y a 50 mm qui se balladent
+                # en Y on a mis 300 pts au dessus, c'est à dire 1125mm, alors que le bord de la piste n'est qu'a 500mm soit 153 points
+                # il y a 100 mm qui se balladent
+                img_wrapped=cv2.line(img_wrapped,(187,200), (187,333), (255,0,0), 2) #Y
+                img_wrapped=cv2.line(img_wrapped,(187,200), (400,200), (255,0,0), 2) #X
+                #donc 187,153 est le décalage en point pour etre positionné dans le repere centré dans l'angle haut et gauche
+                #donc 701,574 en mm
+                print("Xrobot ",centerCorner[0][0]-187)
+                print("Yrobot ",centerCorner[0][1]-153)
+                # affiche les coordonnées sur l'image
+                cv2.putText(img_wrapped, format(int(x_coordmm)), (10,40),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 0), 2)
+                cv2.putText(img_wrapped, format(int(y_coordmm)), (130,40),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 0), 2)
+                cv2.putText(img_wrapped, format(alpha), (10,70),cv2.FONT_HERSHEY_SIMPLEX, 1,(0, 255, 255), 2)
+                # affiche le nom des axes
+                cv2.putText(img_wrapped, 'X', (410,153),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)
+                cv2.putText(img_wrapped, 'Y', (153,380),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)        
+                cv2.putText(img_wrapped, '0', (190,180),cv2.FONT_HERSHEY_SIMPLEX, 1,(255, 0,0), 2)       
         
         
         
